@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دغش ماركت - Dagash Market</title>
+    <style>
+        :root {
+            --primary-color: #2e7d32;
+            --text-color: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+            color: var(--text-color);
+        }
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        header h1 { margin: 0; font-size: 28px; }
+        header p { margin: 5px 0 0; opacity: 0.9; }
+        .main-whatsapp {
+            display: inline-block;
+            background-color: #25D366;
+            color: white;
+            padding: 10px 25px;
+            text-decoration: none;
+            border-radius: 25px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+        .category-title {
+            border-right: 5px solid var(--primary-color);
+            padding-right: 10px;
+            margin: 30px 0 15px;
+            color: var(--primary-color);
+            font-size: 22px;
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .product-card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+            text-align: center;
+            padding-bottom: 15px;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        .product-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background-color: #eee;
+        }
+        .product-card h3 {
+            margin: 15px 0 5px;
+            font-size: 18px;
+        }
+        .product-card .price {
+            color: var(--primary-color);
+            font-size: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .order-btn {
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .order-btn:hover { background-color: #128C7E; }
+        footer {
+            text-align: center;
+            padding: 20px;
+            background-color: #333;
+            color: white;
+            margin-top: 40px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🛒 دغش ماركت - Dagash Market</h1>
+        <p>كل ما تحتاجه من مواد غذائية تحت سقف واحد - توصيل سريع لباب البيت</p>
+        <a href="https://wa.me/972592053402" class="main-whatsapp">📱 تواصل معنا عبر واتساب</a>
+    </header>
+
+    <div class="container" id="products-container">
+        <div class="loading">جاري تحميل المنتجات...</div>
+    </div>
+
+    <footer>
+        <p>جميع الحقوق محفوظة © 2026 - دغش ماركت Dagash Market</p>
+        <p>📞 للطلبات: 00972592053402</p>
+    </footer>
+
+    <script>
+        // ⚠️ هام: استبدل هذا الرابط برابط جدولك من Google Sheets
+        // يجب أن يكون الجدول منشوراً للعامة (File > Publish to web)
+        const SHEET_ID = "YOUR_SHEET_ID_HERE"; // ضع هنا ID الجدول فقط (الجزء بين /d/ و /edit)
+        
+        // أسماء الأقسام بالعربية
+        const categoryNames = {
+            'vegetables': '🥦 خضار طازجة',
+            'fruits': '🍎 فواكه',
+            'dairy': '🥛 ألبان وأجبان',
+            'meat': '🥩 لحوم ودواجن',
+            'bakery': '🍞 مخبوزات',
+            'drinks': '🥤 مشروبات',
+            'canned': '🥫 معلبات',
+            'spices': '🧂 بهارات وزيوت',
+            'snacks': '🍫 حلويات وسناكس',
+            'frozen': '🧊 مجمدات',
+            'cleaning': '🧼 منظفات وعناية'
+        };
+
+        async function loadProducts() {
+            try {
+                // قراءة البيانات من Google Sheets
+                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+                const response = await fetch(url);
+                const text = await response.text();
+                
+                // تنظيف البيانات (Google Sheets يرجع JSON غير نظيف)
+                const json = JSON.parse(text.substring(47).slice(0, -2));
+                const rows = json.table.rows;
+                
+                // تجميع المنتجات حسب الفئة
+                const productsByCategory = {};
+                
+                rows.forEach(row => {
+                    const cells = row.c;
+                    if (!cells[0] || !cells[1]) return; // تخطي الصفوف الفارغة
+                    
+                    const product = {
+                        id: cells[0].v,
+                        name: cells[1].v,
+                        price: cells[2].v,
+                        image: cells[3].v,
+                        category: cells[4].v || 'other'
+                    };
+                    
+                    if (!productsByCategory[product.category]) {
+                        productsByCategory[product.category] = [];
+                    }
+                    productsByCategory[product.category].push(product);
+                });
+                
+                // عرض المنتجات
+                displayProducts(productsByCategory);
+                
+            } catch (error) {
+                console.error('خطأ في تحميل المنتجات:', error);
+                document.getElementById('products-container').innerHTML = 
+                    '<div class="loading">⚠️ حدث خطأ في تحميل المنتجات. تأكد من إعدادات Google Sheets.</div>';
+            }
+        }
+
+        function displayProducts(productsByCategory) {
+            const container = document.getElementById('products-container');
+            container.innerHTML = '';
+            
+            // ترتيب الأقسام
+            const categoryOrder = ['vegetables', 'fruits', 'dairy', 'meat', 'bakery', 'drinks', 'canned', 'spices', 'snacks', 'frozen', 'cleaning'];
+            
+            categoryOrder.forEach(category => {
+                if (productsByCategory[category] && productsByCategory[category].length > 0) {
+                    const section = document.createElement('div');
+                    section.innerHTML = `
+                        <h2 class="category-title">${categoryNames[category] || category}</h2>
+                        <div class="products-grid" id="grid-${category}"></div>
+                    `;
+                    container.appendChild(section);
+                    
+                    const grid = section.querySelector(`#grid-${category}`);
+                    productsByCategory[category].forEach(product => {
+                        const card = document.createElement('div');
+                        card.className = 'product-card';
+                        card.innerHTML = `
+                            <img src="${product.image}" alt="${product.name}">
+                            <h3>${product.name}</h3>
+                            <div class="price">${product.price} ₪</div>
+                            <button class="order-btn" onclick="orderViaWhatsApp('${product.name}', '${product.price} ₪')">اطلب عبر واتساب</button>
+                        `;
+                        grid.appendChild(card);
+                    });
+                }
+            });
+        }
+
+        function orderViaWhatsApp(productName, price) {
+            const phoneNumber = "972592053402";
+            const message = `مرحباً دغش ماركت، أريد طلب المنتج التالي:\n📦 المنتج: ${productName}\n💰 السعر: ${price}\nيرجى تأكيد الطلب وموقع التوصيل.`;
+            const encodedMessage = encodeURIComponent(message);
+            window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, '_blank');
+        }
+
+        // تحميل المنتجات عند فتح الصفحة
+        loadProducts();
+    </script>
+
+</body>
+</html>
